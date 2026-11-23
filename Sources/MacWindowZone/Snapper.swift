@@ -7,7 +7,7 @@ enum Snapper {
     static func snap(window: AXWindow, to zone: Zone, on screen: NSScreen) -> Bool {
         snap(
             window: window,
-            toRect: zone.absoluteRect(in: screen.visibleFrame),
+            toRect: zone.absoluteRect(in: ScreenManager.zoneFrame(for: screen)),
             on: screen,
             zoneID: zone.id,
             zoneIDs: nil
@@ -19,7 +19,7 @@ enum Snapper {
     static func snap(window: AXWindow, toEdge target: EdgeSnapTarget, on screen: NSScreen) -> Bool {
         snap(
             window: window,
-            toRect: target.rect(in: screen.visibleFrame),
+            toRect: target.rect(in: ScreenManager.zoneFrame(for: screen)),
             on: screen,
             zoneID: nil,
             zoneIDs: nil
@@ -33,7 +33,7 @@ enum Snapper {
         if zones.count == 1 {
             return snap(window: window, to: first, on: screen)
         }
-        guard let union = Zone.boundingRect(of: zones, in: screen.visibleFrame) else { return false }
+        guard let union = Zone.boundingRect(of: zones, in: ScreenManager.zoneFrame(for: screen)) else { return false }
         return snap(
             window: window,
             toRect: union,
@@ -71,7 +71,7 @@ enum Snapper {
         zoneID: UUID?,
         zoneIDs: [UUID]?
     ) -> Bool {
-        let cocoaRect = gappedRect(raw, in: screen.visibleFrame, gap: Settings.shared.gap)
+        let cocoaRect = gappedRect(raw, in: ScreenManager.zoneFrame(for: screen), gap: Settings.shared.gap)
         let axRect = ScreenManager.cocoaToAX(cocoaRect)
         let ok = window.setFrame(axRect)
         if ok {

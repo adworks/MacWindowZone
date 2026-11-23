@@ -284,8 +284,8 @@ final class ZoneEditorView: NSView {
     }
 
     private func visibleFrameInView() -> NSRect {
-        // visibleFrame is in screen coordinates; bring it into view space.
-        let vf = screen.visibleFrame
+        // zoneFrame is in screen coordinates; bring it into view space.
+        let vf = ScreenManager.zoneFrame(for: screen)
         let local = NSRect(
             x: vf.minX - screen.frame.minX,
             y: vf.minY - screen.frame.minY,

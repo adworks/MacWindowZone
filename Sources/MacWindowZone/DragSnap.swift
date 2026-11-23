@@ -67,7 +67,7 @@ final class DragSnapView: NSView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func visibleFrameInView() -> NSRect {
-        let vf = screen.visibleFrame
+        let vf = ScreenManager.zoneFrame(for: screen)
         return NSRect(
             x: vf.minX - screen.frame.minX,
             y: vf.minY - screen.frame.minY,
@@ -342,7 +342,7 @@ final class DragSnapController {
 
         guard let screen = ScreenManager.screenContaining(point: cocoaPoint) else { return }
         let layout = ZoneStore.shared.layout(for: ScreenManager.identifier(for: screen))
-        let vf = screen.visibleFrame
+        let vf = ScreenManager.zoneFrame(for: screen)
         if let id = selectedIDs.first, let zone = layout.zones.first(where: { $0.id == id }) {
             Snapper.snap(window: window, to: zone, on: screen)
             return
@@ -463,7 +463,7 @@ final class DragSnapController {
 
     private func updateHighlight(cocoaPoint: NSPoint, modifiers: NSEvent.ModifierFlags) {
         guard let screen = ScreenManager.screenContaining(point: cocoaPoint) else { return }
-        let vf = screen.visibleFrame
+        let vf = ScreenManager.zoneFrame(for: screen)
         let id = ScreenManager.identifier(for: screen)
         let layout = ZoneStore.shared.layout(for: id)
         let nearby = Self.zones(near: cocoaPoint, in: layout.zones, visibleFrame: vf)

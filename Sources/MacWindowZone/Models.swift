@@ -4,7 +4,8 @@ import AppKit
 struct Zone: Codable, Identifiable, Hashable {
     let id: UUID
     var name: String
-    // Fraction-based rect (0..1) relative to the screen visible frame.
+    // Fraction-based rect (0..1) relative to `ScreenManager.zoneFrame`
+    // (display minus menu bar, Dock ignored).
     // This keeps zones consistent across resolution/scale changes.
     var fractionalRect: FractionalRect
 
@@ -57,6 +58,25 @@ struct ScreenLayout: Codable {
     // Stable identifier for the screen (display UUID or fallback).
     let screenID: String
     var zones: [Zone]
+    /// True once `zones` are fractions of `ScreenManager.zoneFrame`. Layouts
+    /// saved before that were fractions of `visibleFrame` (which also
+    /// excludes the Dock); `ZoneStore` converts them once, keeping their size.
+    var dockIndependent: Bool
+
+    init(screenID: String, zones: [Zone], dockIndependent: Bool = true) {
+        self.screenID = screenID
+        self.zones = zones
+        self.dockIndependent = dockIndependent
+    }
+
+    private enum CodingKeys: String, CodingKey { case screenID, zones, dockIndependent }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        screenID = try c.decode(String.self, forKey: .screenID)
+        zones = try c.decode([Zone].self, forKey: .zones)
+        dockIndependent = try c.decodeIfPresent(Bool.self, forKey: .dockIndependent) ?? false
+    }
 }
 
 struct ZoneConfiguration: Codable {

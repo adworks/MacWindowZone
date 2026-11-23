@@ -28,12 +28,17 @@ final class ZoneStore {
         } else {
             self.config = ZoneConfiguration()
         }
+        migrateDockRelativeLayouts()
         // Seed defaults for any new screen on first launch.
         seedDefaultsIfNeeded()
     }
 
     func layout(for screenID: String) -> ScreenLayout {
-        if let layout = config.layouts[screenID] { return layout }
+        if let layout = config.layouts[screenID] {
+            // Saved for a display that wasn't connected at launch.
+            if !layout.dockIndependent { migrateDockRelativeLayouts() }
+            return config.layouts[screenID] ?? layout
+        }
         let layout = ScreenLayout(screenID: screenID, zones: ZoneStore.defaultZones())
         config.layouts[screenID] = layout
         save()
@@ -64,6 +69,38 @@ final class ZoneStore {
     func resetScreen(_ screenID: String) {
         config.layouts[screenID] = ScreenLayout(screenID: screenID, zones: ZoneStore.defaultZones())
         save()
+    }
+
+    /// Convert layouts saved as fractions of `visibleFrame` to fractions of
+    /// the Dock-independent `zoneFrame`, keeping each zone the size it had
+    /// with the Dock on that display. Displays not connected yet are left
+    /// for later (`layout(for:)` retries).
+    private func migrateDockRelativeLayouts() {
+        let pending = config.layouts.values.filter { !$0.dockIndependent }
+        guard !pending.isEmpty else { return }
+        let dock = ScreenManager.currentDockInsets()
+        var changed = false
+        for var layout in pending {
+            guard let screen = ScreenManager.screen(for: layout.screenID) else { continue }
+            let zf = ScreenManager.zoneFrame(for: screen)
+            let withDock = CGRect(
+                x: zf.minX + dock.left,
+                y: zf.minY + dock.bottom,
+                width: zf.width - dock.left - dock.right,
+                height: zf.height - dock.bottom
+            )
+            guard withDock.width > 0, withDock.height > 0 else { continue }
+            layout.zones = layout.zones.map { zone in
+                var zone = zone
+                zone.fractionalRect = .from(absolute: zone.absoluteRect(in: withDock), in: zf)
+                return zone
+            }
+            layout.dockIndependent = true
+            config.layouts[layout.screenID] = layout
+            changed = true
+            Log.line("ZoneStore: made \(layout.screenID) Dock-independent (dock insets l=\(dock.left) b=\(dock.bottom) r=\(dock.right))")
+        }
+        if changed { save() }
     }
 
     private func seedDefaultsIfNeeded() {

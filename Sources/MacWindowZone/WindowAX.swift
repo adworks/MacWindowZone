@@ -96,7 +96,7 @@ struct AXWindow {
         let screen = screen(forAXRect: target)
         let vfAX: CGRect = {
             guard let screen else { return target }
-            return ScreenManager.cocoaToAX(screen.visibleFrame)
+            return ScreenManager.cocoaToAX(ScreenManager.zoneFrame(for: screen))
         }()
         let slop: CGFloat = 16
         let x = fitAxis(

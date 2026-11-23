@@ -20,9 +20,39 @@ enum ScreenManager {
         NSScreen.screens.first { identifier(for: $0) == id }
     }
 
-    /// Visible frame in *Cocoa* coordinates (origin bottom-left, includes menu/dock exclusions).
-    static func visibleFrame(for screen: NSScreen) -> CGRect {
-        screen.visibleFrame
+    /// The area zones and snaps are laid out in, in *Cocoa* coordinates: the
+    /// whole display minus the menu bar. Deliberately ignores the Dock — macOS
+    /// moves it to whichever display the cursor last pushed against the
+    /// bottom of, so `visibleFrame` shrinks and grows under us and zones would
+    /// change size with it. The Dock never sits at the top, so the top of
+    /// `visibleFrame` is the menu bar edge (or the display edge if hidden).
+    static func zoneFrame(for screen: NSScreen) -> CGRect {
+        // A cached NSScreen can hold stale geometry; prefer the live instance.
+        let id = identifier(for: screen)
+        let live = NSScreen.screens.first { identifier(for: $0) == id } ?? screen
+        let frame = live.frame
+        let top = min(live.visibleFrame.maxY, frame.maxY)
+        return CGRect(x: frame.minX, y: frame.minY, width: frame.width, height: top - frame.minY)
+    }
+
+    /// Space the Dock reserves right now on whichever display hosts it
+    /// (all zero when it is auto-hidden). Only `left`, `bottom`, `right` are used.
+    static func currentDockInsets() -> NSEdgeInsets {
+        var best = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+        for screen in NSScreen.screens {
+            let zf = zoneFrame(for: screen)
+            let vf = screen.visibleFrame
+            let insets = NSEdgeInsets(
+                top: 0,
+                left: max(0, vf.minX - zf.minX),
+                bottom: max(0, vf.minY - zf.minY),
+                right: max(0, zf.maxX - vf.maxX)
+            )
+            if insets.left + insets.bottom + insets.right > best.left + best.bottom + best.right {
+                best = insets
+            }
+        }
+        return best
     }
 
     /// Convert a Cocoa rect to AX/Quartz coordinates (origin top-left, y inverted
