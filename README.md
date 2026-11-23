@@ -195,7 +195,7 @@ scripts/
 - **Cocoa:** y-up, origin bottom-left of the primary display.
 - **AX / Quartz:** y-down, origin top-left of the primary display.
 - `ScreenManager.cocoaToAX(_:)` converts between them; the conversion is the same for any point in the unified screen space (negative coordinates on extended displays included).
-- Zones are stored as **fractional rectangles** (0…1) of each display's *visible frame*, so layouts survive resolution and scale changes.
+- Zones are stored as **fractional rectangles** (0…1) of each display's area below the menu bar, so layouts survive resolution and scale changes. The Dock is deliberately ignored: macOS moves it between displays, and zones would otherwise grow and shrink with it. Leave room for it in the editor if you want windows to clear it. Layouts saved by earlier versions are converted once on launch, keeping each zone the size it had with the Dock present.
 
 ### Cross-screen window manipulation
 
